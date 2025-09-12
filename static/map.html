@@ -1,0 +1,49 @@
+import folium
+from typing import List, Dict, Any
+
+def generate_map(locations: List[tuple], results: List[Dict[str, Any]], map_path: str = "static/map.html") -> str:
+    """
+    Generate an interactive Folium map with markers for photo locations.
+    
+    Args:
+        locations: List of (latitude, longitude) tuples for photos.
+        results: List of verification results with filename, status, score, reason, etc.
+        map_path: Path to save the map HTML file.
+    
+    Returns:
+        Path to the generated map file.
+    """
+    if not locations or not results:
+        return None
+
+    # Initialize map at the first location with zoom level 15
+    m = folium.Map(location=[locations[0][0], locations[0][1]], zoom_start=15)
+
+    # Add markers for each photo location
+    for i, loc in enumerate(locations):
+        if i >= len(results):
+            continue
+        result = results[i]
+        popup_content = (
+            f"<b>File:</b> {result['file']}<br>"
+            f"<b>Status:</b> {result['status']}<br>"
+            f"<b>Score:</b> {result['score']:.2f}<br>"
+            f"<b>Reasons:</b> {', '.join(result['reason'])}<br>"
+            f"<b>Latitude:</b> {result['metadata']['lat']}<br>"
+            f"<b>Longitude:</b> {result['metadata']['lon']}<br>"
+            f"<b>Timestamp:</b> {result['metadata']['timestamp']}<br>"
+            f"<b>Device:</b> {result['metadata']['device']}<br>"
+            f"<b>Depth:</b> {result['depth']:.2f}<br>"
+            f"<b>Cluster:</b> {result['cluster']}"
+        )
+        # Color-code markers: green (Real), yellow (Review), red (Fake)
+        color = "green" if result["status"] == "Real" else "orange" if result["status"] == "Review" else "red"
+        folium.Marker(
+            [loc[0], loc[1]],
+            popup=popup_content,
+            icon=folium.Icon(color=color)
+        ).add_to(m)
+
+    # Save map
+    m.save(map_path)
+    return map_path
