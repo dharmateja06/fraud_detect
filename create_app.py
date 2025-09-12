@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, Request
+app_content = '''from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -29,11 +29,11 @@ templates = Jinja2Templates(directory='templates')
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS submissions
+    c.execute(\'\'\'CREATE TABLE IF NOT EXISTS submissions
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   filename TEXT, status TEXT, score REAL, reason TEXT,
                   lat REAL, lon REAL, timestamp TEXT, device TEXT,
-                  depth REAL, cluster INTEGER)''')
+                  depth REAL, cluster INTEGER)\'\'\')
     conn.commit()
     conn.close()
 
@@ -80,10 +80,10 @@ async def verify_boards(request: Request, files: List[UploadFile] = File(...)):
         c = conn.cursor()
         for result in verification_results:
             metadata = result['metadata']
-            c.execute('''INSERT INTO submissions 
+            c.execute(\'\'\'INSERT INTO submissions 
                         (filename, status, score, reason, lat, lon, timestamp, 
                          device, depth, cluster)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\'\'\',
                      (result['file'], result['status'], 
                       result.get('score', 0.0),  # Use get() with default value
                       ', '.join(result['reason']),
@@ -114,3 +114,7 @@ async def verify_boards(request: Request, files: List[UploadFile] = File(...)):
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host='0.0.0.0', port=8000)
+'''
+
+with open('app.py', 'w', encoding='utf-8') as f:
+    f.write(app_content)

@@ -1,21 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Board Verification</title>
+    <title>Board Verification System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/static/css/style.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .upload-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .features-list {
+            margin-top: 2rem;
+        }
+        .feature-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .feature-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .upload-zone {
+            border: 2px dashed #dee2e6;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-zone:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
+        }
+        .upload-icon {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h1>Upload Parking Board Photos</h1>
-        <p>Upload 2-3 photos per board (front, 45° left, 45° right).</p>
-        <form action="/verify_boards/" enctype="multipart/form-data" method="post">
-            <div class="mb-3">
-                <label class="form-label">Select Photos</label>
-                <input type="file" name="files" multiple class="form-control" accept="image/*" required>
+    <div class="container mt-5 mb-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="upload-container">
+                    <h1 class="text-center mb-4">
+                        <i class="fas fa-shield-alt"></i> 
+                        Board Verification System
+                    </h1>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle"></i>
+                        Upload 2-3 photos per board (front view, 45° left angle, 45° right angle) for comprehensive verification.
+                    </div>
+
+                    <form action="/verify_boards/" enctype="multipart/form-data" method="post">
+                        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <h4>Drop Photos Here</h4>
+                            <p class="text-muted">or click to select files</p>
+                            <input id="file-input" type="file" name="files" multiple class="form-control d-none" accept="image/*" required>
+                        </div>
+                        <div id="file-list" class="mb-3">
+                            <!-- Selected files will be listed here -->
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-check-circle"></i> 
+                            Verify Photos
+                        </button>
+                    </form>
+
+                    <div class="features-list">
+                        <h4 class="mb-3">Verification Features:</h4>
+                        <div class="feature-item">
+                            <i class="fas fa-map-marker-alt text-primary"></i>
+                            <strong>Automatic Location Detection</strong>
+                            <p class="mb-0 text-muted">Uses EXIF data, OCR, and visual analysis for location verification</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-camera text-success"></i>
+                            <strong>Image Authenticity Check</strong>
+                            <p class="mb-0 text-muted">Analyzes metadata, error levels, and visual consistency</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-chart-bar text-info"></i>
+                            <strong>Confidence Scoring</strong>
+                            <p class="mb-0 text-muted">Provides detailed verification scores and analysis</p>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-map text-warning"></i>
+                            <strong>Location Clustering</strong>
+                            <p class="mb-0 text-muted">Groups and validates photos from similar locations</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary">Verify</button>
-        </form>
+        </div>
     </div>
+
+    <script>
+        // Handle file selection UI
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            
+            for(let i = 0; i < this.files.length; i++) {
+                const file = this.files[i];
+                const fileItem = document.createElement('div');
+                fileItem.classList.add('alert', 'alert-success', 'mb-2');
+                fileItem.innerHTML = `
+                    <i class="fas fa-file-image"></i>
+                    ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+                `;
+                fileList.appendChild(fileItem);
+            }
+        });
+
+        // Handle drag and drop
+        const dropZone = document.querySelector('.upload-zone');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.classList.add('bg-light');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('bg-light');
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('file-input').files = files;
+            
+            // Trigger the change event manually
+            const event = new Event('change');
+            document.getElementById('file-input').dispatchEvent(event);
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
