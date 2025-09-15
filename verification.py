@@ -238,18 +238,20 @@ def init_midas():
             print(f"Error loading MiDaS model: {str(e)}")
             raise
 
-def verify_photos(file_paths: List[str]) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+def verify_photos(file_paths: List[str]) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
     """Verify photos for fraud detection using automatic location detection.
     
     Args:
         file_paths: List of paths to photos
     Returns:
-        Tuple[List[Dict], Optional[str]]: List of results and optional map URL
+        Tuple[List[Dict], List[Dict[str, str]]]: List of results and list of map URLs with names
     """
     results = []
     locations = []
+    map_urls = []
     timestamps = []
     devices = []
+    individual_maps = []
 
     # Process each photo
     for file_path in file_paths:
@@ -406,17 +408,43 @@ def verify_photos(file_paths: List[str]) -> Tuple[List[Dict[str, Any]], Optional
         else:
             result["status"] = "Verified"
 
-    # Generate map for photos with locations
-    map_url = None
-    if locations:
+    # Generate individual maps for photos with locations
+    for idx, result in enumerate(results, 1):
+        if result["metadata"]["lat"] is not None and result["metadata"]["lon"] is not None:
+            # Create individual map
+            m = folium.Map(
+                location=[result["metadata"]["lat"], result["metadata"]["lon"]], 
+                zoom_start=15
+            )
+            # Add marker for this location
+            folium.Marker(
+                [result["metadata"]["lat"], result["metadata"]["lon"]], 
+                popup=f"Image {idx}: {result['file']}<br>Status: {result['status']}"
+            ).add_to(m)
+            
+            # Save individual map
+            map_filename = f"map_{result['file'].replace('.', '_')}.html"
+            m.save(os.path.join("static", map_filename))
+            
+            # Add to map list
+            map_urls.append({
+                "url": map_filename,
+                "name": f"Image {idx}: {result['file']}"
+            })
+
+    # Generate combined map if there are multiple locations
+    if len(locations) > 1:
         m = folium.Map(location=[locations[0][0], locations[0][1]], zoom_start=15)
-        for result in results:
+        for idx, result in enumerate(results, 1):
             if result["metadata"]["lat"] is not None and result["metadata"]["lon"] is not None:
                 folium.Marker(
                     [result["metadata"]["lat"], result["metadata"]["lon"]], 
-                    popup=f"{result['status']}: {', '.join(result['reason'])}"
+                    popup=f"Image {idx}: {result['file']}<br>Status: {result['status']}"
                 ).add_to(m)
-        map_url = "static/map.html"
-        m.save(map_url)
+        m.save(os.path.join("static", "map_combined.html"))
+        map_urls.append({
+            "url": "map_combined.html",
+            "name": "Combined View"
+        })
 
-    return results, map_url
+    return results, map_urls

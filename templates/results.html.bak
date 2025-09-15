@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verification Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .result-card {
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .status-verified {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .status-suspicious {
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+            color: #856404;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .progress {
+            height: 25px;
+        }
+        .progress-bar {
+            line-height: 25px;
+            font-size: 14px;
+        }
+        .analysis-section {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        .detected-text {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .confidence-high { color: #28a745; }
+        .confidence-medium { color: #ffc107; }
+        .confidence-low { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5 mb-5">
+        <h1 class="mb-4">
+            <i class="fas fa-shield-alt"></i> 
+            Board Verification Results
+        </h1>
+        
+        {% if error %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> 
+                {{ error }}
+            </div>
+        {% else %}
+            {% for result in results %}
+                <div class="result-card">
+                    <div class="card">
+                        <div class="card-header {% if result.status == 'Verified' %}status-verified{% elif result.status == 'Suspicious' %}status-suspicious{% else %}status-error{% endif %}">
+                            <h4 class="mb-0">
+                                {% if result.status == 'Verified' %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% elif result.status == 'Suspicious' %}
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                {% else %}
+                                    <i class="fas fa-times-circle"></i>
+                                {% endif %}
+                                {{ result.file }}
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <!-- Overall Scores -->
+                            <div class="analysis-section">
+                                <h5><i class="fas fa-chart-bar"></i> Overall Analysis</h5>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label>Authenticity Score:</label>
+                                        <div class="progress">
+                                            <div class="progress-bar {% if result.score >= 0.7 %}bg-success{% elif result.score >= 0.4 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                role="progressbar"
+                                                style="width: {{ (result.score * 100) }}%">
+                                                {{ "%.1f"|format(result.score * 100) }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label>Location Confidence:</label>
+                                        <div class="progress">
+                                            <div class="progress-bar {% if result.location_confidence >= 0.7 %}bg-success{% elif result.location_confidence >= 0.4 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                role="progressbar" 
+                                                style="width: {{ (result.location_confidence * 100) }}%">
+                                                {{ "%.1f"|format(result.location_confidence * 100) }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Location Information -->
+                            <div class="analysis-section">
+                                <h5><i class="fas fa-map-marker-alt"></i> Location Information</h5>
+                                {% if result.metadata.lat and result.metadata.lon %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Latitude:</strong> {{ "%.6f"|format(result.metadata.lat) }}</p>
+                                            <p><strong>Longitude:</strong> {{ "%.6f"|format(result.metadata.lon) }}</p>
+                                            <p><strong>Cluster:</strong> {{ result.cluster if result.cluster != -1 else "No cluster" }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Depth:</strong> {{ "%.2f"|format(result.depth) if result.depth else "N/A" }}</p>
+                                            {% if result.metadata.timestamp %}
+                                                <p><strong>Timestamp:</strong> {{ result.metadata.timestamp }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <p class="text-warning"><i class="fas fa-exclamation-circle"></i> No location data available</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Analysis Details -->
+                            <div class="analysis-section">
+                                <h5><i class="fas fa-list-ul"></i> Analysis Details</h5>
+                                <ul class="list-group">
+                                    {% for reason in result.reason %}
+                                        <li class="list-group-item">
+                                            {% if 'error' in reason.lower() %}
+                                                <i class="fas fa-times-circle text-danger"></i>
+                                            {% elif 'success' in reason.lower() or 'detected' in reason.lower() %}
+                                                <i class="fas fa-check-circle text-success"></i>
+                                            {% else %}
+                                                <i class="fas fa-info-circle text-info"></i>
+                                            {% endif %}
+                                            {{ reason }}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+
+                            <!-- Device Information -->
+                            {% if result.metadata.device %}
+                            <div class="analysis-section">
+                                <h5><i class="fas fa-camera"></i> Device Information</h5>
+                                <p>{{ result.metadata.device }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <!-- Location Map -->
+            {% if map_url %}
+                <div class="card mt-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-map"></i> Location Cluster Map</h5>
+                    </div>
+                    <div class="card-body">
+                        <iframe src="{{ map_url }}" width="100%" height="400" frameborder="0"></iframe>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-primary btn-lg">
+                <i class="fas fa-upload"></i> Upload More Photos
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
